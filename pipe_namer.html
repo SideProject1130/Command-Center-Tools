@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipe Namer — Smoke Spot</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f13;
+    color: #e8e4dc;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+
+  .header p {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: #18181f;
+    border: 1px solid #2a2a35;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 640px;
+    margin: 0 auto 24px auto;
+  }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 8px;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: #0f0f13;
+    border: 1px solid #2a2a35;
+    border-radius: 8px;
+    color: #e8e4dc;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: #5b6ef5;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  select option {
+    background: #18181f;
+  }
+
+  .field { margin-bottom: 18px; }
+
+  .upload-area {
+    border: 2px dashed #2a2a35;
+    border-radius: 10px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: #5b6ef5;
+    background: #1c1c28;
+  }
+
+  .upload-area input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-text { font-size: 0.85rem; color: #888; }
+  .upload-text strong { color: #aaa; }
+
+  .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .preview-grid img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #2a2a35;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .btn-generate {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    display: block;
+    background: #5b6ef5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+
+  .btn-generate:hover { background: #4a5de0; }
+  .btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .results-card {
+    background: #18181f;
+    border: 1px solid #2a2a35;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 640px;
+    margin: 24px auto 0 auto;
+    display: none;
+  }
+
+  .results-card.visible { display: block; }
+
+  .results-card h2 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 16px;
+  }
+
+  .name-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0f0f13;
+    border: 1px solid #2a2a35;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    gap: 10px;
+    transition: border-color 0.15s;
+  }
+
+  .name-option:hover { border-color: #5b6ef5; }
+
+  .name-option span {
+    font-size: 0.95rem;
+    color: #e8e4dc;
+    flex: 1;
+  }
+
+  .btn-copy {
+    background: #2a2a35;
+    border: none;
+    border-radius: 6px;
+    color: #aaa;
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .btn-copy:hover { background: #5b6ef5; color: #fff; }
+  .btn-copy.copied { background: #2a7a4f; color: #fff; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #2a2a35;
+    margin: 18px 0;
+  }
+
+  .desc-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 10px;
+  }
+
+  .desc-box {
+    background: #0f0f13;
+    border: 1px solid #2a2a35;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #ccc;
+    white-space: pre-wrap;
+    position: relative;
+  }
+
+  .btn-copy-desc {
+    margin-top: 10px;
+    background: #2a2a35;
+    border: none;
+    border-radius: 6px;
+    color: #aaa;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .btn-copy-desc:hover { background: #5b6ef5; color: #fff; }
+
+  .loading {
+    text-align: center;
+    padding: 32px;
+    color: #888;
+    font-size: 0.9rem;
+  }
+
+  .dot-pulse::after {
+    content: '';
+    animation: dots 1.2s steps(3, end) infinite;
+  }
+
+  @keyframes dots {
+    0%   { content: '.'; }
+    33%  { content: '..'; }
+    66%  { content: '...'; }
+    100% { content: ''; }
+  }
+
+  .error {
+    background: #2a1515;
+    border: 1px solid #5a2020;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #f08080;
+    font-size: 0.88rem;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #5b6ef522;
+    color: #8b9ef7;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🪩 Pipe Namer <span class="badge">Smoke Spot</span></h1>
+  <p>Upload photos → enter details → get 5 names + a product description</p>
+</div>
+
+<div class="card">
+  <div class="field">
+    <label>Photos (2–5)</label>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="photoInput" accept="image/*" multiple>
+      <div class="upload-icon">📷</div>
+      <div class="upload-text"><strong>Click to upload</strong> or drag photos here</div>
+    </div>
+    <div class="preview-grid" id="previewGrid"></div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label>Length</label>
+      <input type="text" id="length" placeholder='e.g. 4.5"'>
+    </div>
+    <div class="field">
+      <label>Price Tier</label>
+      <select id="priceTier">
+        <option value="HP25">HP25 — $24.99</option>
+        <option value="HP30" selected>HP30 — $29.99</option>
+        <option value="HP40">HP40 — $39.99</option>
+        <option value="HP50">HP50 — $49.99</option>
+        <option value="WP50">WP50 — $49.99 Water</option>
+        <option value="WP75">WP75 — $74.99 Water</option>
+        <option value="WP100">WP100 — $99.99 Water</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Quick Notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(colors, patterns, anything that stands out)</span></label>
+    <textarea id="notes" placeholder="e.g. deep blue, fumed, triangle flat-bottom base, white rake lines, cobalt marble effect"></textarea>
+  </div>
+</div>
+
+<button class="btn-generate" id="generateBtn" onclick="generate()">Generate Names + Description</button>
+
+<div class="results-card" id="resultsCard">
+  <div id="resultsContent"></div>
+</div>
+
+<script>
+  const photoInput = document.getElementById('photoInput');
+  const previewGrid = document.getElementById('previewGrid');
+  const uploadArea = document.getElementById('uploadArea');
+  let imageBase64Array = [];
+
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  photoInput.addEventListener('change', () => handleFiles(photoInput.files));
+
+  function handleFiles(files) {
+    imageBase64Array = [];
+    previewGrid.innerHTML = '';
+    const toProcess = Array.from(files).slice(0, 5);
+    let done = 0;
+    toProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const base64 = e.target.result.split(',')[1];
+        imageBase64Array.push({ base64, mediaType: file.type || 'image/jpeg' });
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        previewGrid.appendChild(img);
+        done++;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  async function generate() {
+    const length = document.getElementById('length').value.trim();
+    const notes = document.getElementById('notes').value.trim();
+    const priceTier = document.getElementById('priceTier').value;
+    const btn = document.getElementById('generateBtn');
+    const resultsCard = document.getElementById('resultsCard');
+    const resultsContent = document.getElementById('resultsContent');
+
+    if (!notes && imageBase64Array.length === 0) {
+      alert('Add at least a photo or some quick notes.');
+      return;
+    }
+
+    btn.disabled = true;
+    resultsCard.classList.add('visible');
+    resultsContent.innerHTML = '<div class="loading">Generating<span class="dot-pulse"></span></div>';
+
+    // Build message content
+    const contentParts = [];
+
+    imageBase64Array.forEach((img, i) => {
+      contentParts.push({
+        type: 'image',
+        source: { type: 'base64', media_type: img.mediaType, data: img.base64 }
+      });
+    });
+
+    const promptText = `You are a product naming expert for a smoke shop called Smoke Spot. 
+You are naming a glass hand pipe for both in-store display and online product listings.
+
+Pipe details:
+- Length: ${length || 'not specified'}
+- Price tier code: ${priceTier}
+- Staff notes: ${notes || 'none provided'}
+${imageBase64Array.length > 0 ? `- ${imageBase64Array.length} photo(s) provided — use the visual details you can see` : ''}
+
+Naming formula: [Color/Theme] + [Pattern Descriptor] + [Shape] + optional size
+- Color/theme vocabulary: Cobalt, Ocean, Storm, Midnight, Galaxy, Forest, Ember, Frost, Aurora, Jade
+- Pattern vocabulary: Fumed, Wave, Ripple, Rake, Speckled, Swirl, Marbled, Lattice, Tie-Dye
+- Shape vocabulary: Spoon, Sherlock, Triangle-Base, Flat-Bottom, Chillum, Bubbler
+
+Return ONLY valid JSON in this exact format (no markdown, no explanation):
+{
+  "names": [
+    "Name One",
+    "Name Two", 
+    "Name Three",
+    "Name Four",
+    "Name Five"
+  ],
+  "description": "A 2-3 sentence product description written for an online listing. Mention the visual style, glass technique if apparent, and why someone would want it. Keep it punchy and under 60 words."
+}`;
+
+    contentParts.push({ type: 'text', text: promptText });
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: contentParts }]
+        })
+      });
+
+      const data = await response.json();
+      const rawText = data.content.map(b => b.text || '').join('');
+      const clean = rawText.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+
+      let html = '<h2>Name Options</h2>';
+      parsed.names.forEach((name, i) => {
+        html += `
+          <div class="name-option">
+            <span>${name}</span>
+            <button class="btn-copy" onclick="copyText('${name.replace(/'/g,"\\'")}', this)">Copy</button>
+          </div>`;
+      });
+
+      html += '<hr class="divider">';
+      html += '<div class="desc-label">Product Description</div>';
+      html += `<div class="desc-box" id="descBox">${parsed.description}</div>`;
+      html += `<button class="btn-copy-desc" onclick="copyText(document.getElementById('descBox').textContent, this)">Copy Description</button>`;
+
+      resultsContent.innerHTML = html;
+
+    } catch (err) {
+      resultsContent.innerHTML = `<div class="error">Something went wrong: ${err.message}. Check your notes and try again.</div>`;
+    }
+
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>
