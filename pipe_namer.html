@@ -296,6 +296,17 @@
   <p>Upload photos → enter details → get 5 names + a product description</p>
 </div>
 
+<div class="card" id="apiKeyCard">
+  <div class="field">
+    <label>API Key <span style="font-weight:400;text-transform:none;letter-spacing:0">— enter once, saved in this browser</span></label>
+    <div style="display:flex;gap:8px;">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." style="flex:1;">
+      <button onclick="saveApiKey()" style="background:#5b6ef5;border:none;border-radius:8px;color:#fff;font-weight:700;padding:0 16px;cursor:pointer;white-space:nowrap;">Save</button>
+    </div>
+    <div id="apiKeyStatus" style="font-size:0.8rem;margin-top:6px;color:#888;"></div>
+  </div>
+</div>
+
 <div class="card">
   <div class="field">
     <label>Photos (2–5)</label>
@@ -335,6 +346,34 @@
   const previewGrid = document.getElementById('previewGrid');
   const uploadArea = document.getElementById('uploadArea');
   let imageBase64Array = [];
+
+  // API Key management
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key.startsWith('sk-ant-')) {
+      document.getElementById('apiKeyStatus').textContent = '⚠ That doesn\'t look right — key should start with sk-ant-';
+      document.getElementById('apiKeyStatus').style.color = '#f08080';
+      return;
+    }
+    localStorage.setItem('ss_pipe_namer_key', key);
+    document.getElementById('apiKeyStatus').textContent = '✓ Key saved — you\'re all set';
+    document.getElementById('apiKeyStatus').style.color = '#4caf82';
+    document.getElementById('apiKeyInput').value = '••••••••••••••••';
+  }
+
+  function getApiKey() {
+    return localStorage.getItem('ss_pipe_namer_key') || '';
+  }
+
+  // On load, show status
+  window.addEventListener('load', () => {
+    const saved = localStorage.getItem('ss_pipe_namer_key');
+    if (saved) {
+      document.getElementById('apiKeyStatus').textContent = '✓ Key saved — ready to use';
+      document.getElementById('apiKeyStatus').style.color = '#4caf82';
+      document.getElementById('apiKeyInput').placeholder = '(key already saved)';
+    }
+  });
 
   uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
   uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
@@ -386,6 +425,13 @@
       return;
     }
 
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      resultsCard.classList.add('visible');
+      resultsContent.innerHTML = '<div class="error">No API key saved. Enter your key at the top of the page and hit Save first.</div>';
+      return;
+    }
+
     btn.disabled = true;
     resultsCard.classList.add('visible');
     resultsContent.innerHTML = '<div class="loading">Generating<span class="dot-pulse"></span></div>';
@@ -431,7 +477,12 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 1000,
